@@ -4,6 +4,7 @@ import os
 import sys
 import pandas as pd
 from datetime import datetime, timedelta, time
+import time as tm
 import numpy as np
 import tkinter as tk
 import tkinter.filedialog
@@ -153,4 +154,6 @@ dstDf.sort_values(by=["日付", "施設"], inplace=True)
 dstDf.drop("index", axis=1, inplace=True)
 # %%
 dstDf.to_excel(os.path.dirname(fp) + r"\施設使用一覧.xlsx", index=False)
+print("完了しました")
+tm.sleep(3)
 # %%
