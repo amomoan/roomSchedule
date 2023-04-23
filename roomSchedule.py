@@ -26,15 +26,11 @@ fp = tkinter.filedialog.askopenfilename(
     filetypes=[("Excel book", "*.xlsx")], title="施設予約ファイルを選択", initialdir=dir_path
 )
 # %%
-# fp = r"C:\Users\shigoto\OneDrive - 北九州市立大学\#その他\非公開\ポートフォリオ\施設予約 - コピー.xlsx"
 df = pd.read_excel(fp, header=2)
 # %%
 df["開始時刻"] = df["時間"].str[:5].copy()
 df["終了時刻"] = df["時間"].str[-5:].copy()
 # %%
-kindOfRoom = df["施設種別"].drop_duplicates()
-Room = df["施設"].drop_duplicates()
-date = df["日付"].drop_duplicates().sort_index()
 startTime = {
     "1時限": "9:00",
     "2時限": "10:40",
@@ -48,7 +44,6 @@ startTime = {
 # %%
 # 施設予約の処理
 schedule = df[df["予約区分"] == "施設予約"].copy()
-# tmp=schedule.head(0)
 tmp = pd.DataFrame()
 start_times = {k: datetime.strptime(v, "%H:%M") for k, v in startTime.items()}
 # %%
@@ -56,7 +51,7 @@ start_times = {k: datetime.strptime(v, "%H:%M") for k, v in startTime.items()}
 for _, row in tqdm.tqdm(schedule.iterrows()):
     start_time = datetime.strptime(row["開始時刻"], "%H:%M")
     end_time = datetime.strptime(row["終了時刻"], "%H:%M")
-    # 終日予約の場合の処理1
+    # 終日予約の場合の処理
     if start_time.time() == time(0, 0):
         start_time = datetime.strptime("09:00", "%H:%M")
     if end_time.time() == time(0, 0):
@@ -73,7 +68,6 @@ for _, row in tqdm.tqdm(schedule.iterrows()):
                 new_row = row.copy()
                 new_row["開講時限"] = key
                 tmp = pd.concat([tmp, new_row], axis=1)
-# print(tmp)
 schedule = tmp.T
 schedule = schedule.dropna(subset=["開講時限"]).drop_duplicates().fillna("-")
 
