@@ -21,6 +21,7 @@ roomSchedule.exeを実行してください。
 - numpy
 - tkinter
 - tqdm
+- styleframe
 
 ## 処理の流れ
 1. 施設予約ファイルを選択する
