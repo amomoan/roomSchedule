@@ -9,6 +9,7 @@ import numpy as np
 import tkinter as tk
 import tkinter.filedialog
 import tqdm
+from styleframe import StyleFrame, Styler, utils
 
 if getattr(sys, "frozen", False):
     # 実行ファイルがあるディレクトリ
@@ -84,19 +85,23 @@ srcDf = pd.concat([scheduleDf, lecturesDf], axis="index")
 srcDf["予約名"] = srcDf["タイトル"] + "\r\n" + srcDf["使用者氏名"]
 # %%
 # 転記する枠を作成
+cols = [
+    "index",
+    "日付",
+    "曜日",
+    "施設種別",
+    "施設",
+    "1時限",
+    "2時限",
+    "昼休み",
+    "3時限",
+    "4時限",
+    "5時限",
+    "6時限",
+    "7時限",
+]
 dstDf = srcDf[["日付", "施設種別", "施設"]].drop_duplicates().reset_index().copy()
-dstDf[
-    [
-        "1時限",
-        "2時限",
-        "昼休み",
-        "3時限",
-        "4時限",
-        "5時限",
-        "6時限",
-        "7時限",
-    ]
-] = np.nan
+dstDf[cols[5:]] = np.nan
 
 # %%
 # dstDfにsrcDfの予約名を転記する
@@ -124,30 +129,32 @@ wd = {
 dstDf["曜日"] = ""
 for i, row in dstDf.iterrows():
     dstDf.loc[i, "曜日"] = wd[row["日付"].weekday()]
-dstDf = dstDf[
-    [
-        "index",
-        "日付",
-        "曜日",
-        "施設種別",
-        "施設",
-        "1時限",
-        "2時限",
-        "昼休み",
-        "3時限",
-        "4時限",
-        "5時限",
-        "6時限",
-        "7時限",
-    ]
-]
+
+dstDf = dstDf[cols]
 # %%
 dstDf["日付"] = dstDf["日付"].astype(str)
 
 dstDf.sort_values(by=["日付", "施設"], inplace=True)
 dstDf.drop("index", axis=1, inplace=True)
 # %%
-dstDf.to_excel(os.path.dirname(fp) + r"\施設使用一覧.xlsx", index=False)
+
+with StyleFrame.ExcelWriter(os.path.dirname(fp) + r"\施設使用一覧.xlsx") as writer:
+    # ③ DataFrame/dfをStyleFrameクラスの引数にしてインスタンス生成
+    sf = StyleFrame(dstDf)
+    sf.set_column_width_dict(
+        {
+            "日付": 12,
+            "曜日": 6,
+            "施設種別": 28,
+            "施設": 17,
+        }
+    )
+    sf.set_column_width(columns=cols[5:], width=37)
+    sf.set_row_height(rows=list(range(2, len(dstDf) + 2)), height=27)
+
+    # StyleFrameのto_excelメソッドで書き込む
+    style = Styler(horizontal_alignment=utils.horizontal_alignments.left, font_size=11)
+    sf.apply_column_style(cols_to_style=cols[1:], styler_obj=style)
+    sf.to_excel(writer, index=False, sheet_name="施設利用一覧")
 print("完了しました")
 tm.sleep(3)
-# %%
