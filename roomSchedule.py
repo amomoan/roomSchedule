@@ -43,45 +43,46 @@ startTime = {
     "7時限": "19:40",
 }
 # %%
+srcDf = pd.DataFrame() 
 # 施設予約の処理
 schedule = df[df["予約区分"] == "施設予約"].copy()
-tmp = pd.DataFrame()
-start_times = {k: datetime.strptime(v, "%H:%M") for k, v in startTime.items()}
-# %%
-# 各予約に対して時限を割り当てる
-for _, row in tqdm.tqdm(schedule.iterrows()):
-    start_time = datetime.strptime(row["開始時刻"], "%H:%M")
-    end_time = datetime.strptime(row["終了時刻"], "%H:%M")
-    # 終日予約の場合の処理
-    if start_time.time() == time(0, 0):
-        start_time = datetime.strptime("09:00", "%H:%M")
-    if end_time.time() == time(0, 0):
-        end_time = datetime.strptime("21:10", "%H:%M")
-    # 時限を割り当てる時間帯を取得
-    time_range = pd.date_range(
-        start=start_time, end=end_time - timedelta(minutes=1), freq="10T"
-    )
+if not schedule.empty:
+    tmp = pd.DataFrame()
+    start_times = {k: datetime.strptime(v, "%H:%M") for k, v in startTime.items()}
+    # 各予約に対して時限を割り当てる
+    for _, row in tqdm.tqdm(schedule.iterrows()):
+        start_time = datetime.strptime(row["開始時刻"], "%H:%M")
+        end_time = datetime.strptime(row["終了時刻"], "%H:%M")
+        # 終日予約の場合の処理
+        if start_time.time() == time(0, 0):
+            start_time = datetime.strptime("09:00", "%H:%M")
+        if end_time.time() == time(0, 0):
+            end_time = datetime.strptime("21:10", "%H:%M")
+        # 時限を割り当てる時間帯を取得
+        time_range = pd.date_range(
+            start=start_time, end=end_time - timedelta(minutes=1), freq="10T"
+        )
 
-    # 各時間帯に対して時限を割り当てる
-    for dt in time_range:
-        for key, value in start_times.items():
-            if dt.time() == value.time():
-                new_row = row.copy()
-                new_row["開講時限"] = key
-                tmp = pd.concat([tmp, new_row], axis=1)
-schedule = tmp.T
-schedule = schedule.dropna(subset=["開講時限"]).drop_duplicates().fillna("-")
+        # 各時間帯に対して時限を割り当てる
+        for dt in time_range:
+            for key, value in start_times.items():
+                if dt.time() == value.time():
+                    new_row = row.copy()
+                    new_row["開講時限"] = key
+                    tmp = pd.concat([tmp, new_row], axis=1)
+    schedule = tmp.T
+    schedule = schedule.dropna(subset=["開講時限"]).drop_duplicates().fillna("-")
+    scheduleDf = schedule[["日付", "開講時限", "施設種別", "施設", "タイトル", "使用者氏名"]]
+    srcDf = srcDf.append(scheduleDf)
 
-
-# %%
-# ここから講義の処理
+# 講義についての処理
 lectures = df[df["予約区分"] == "講義"].copy()
-lectures["開講時限"] = lectures["開講時限"].astype(int).astype(str) + "時限"
-# %%
-scheduleDf = schedule[["日付", "開講時限", "施設種別", "施設", "タイトル", "使用者氏名"]]
-lecturesDf = lectures[["日付", "開講時限", "施設種別", "施設", "科目名称", "主担当教員"]]
-lecturesDf.columns = ["日付", "開講時限", "施設種別", "施設", "タイトル", "使用者氏名"]
-srcDf = pd.concat([scheduleDf, lecturesDf], axis="index")
+if not lectures.empty:
+    lectures["開講時限"] = lectures["開講時限"].astype(int).astype(str) + "時限"
+    lecturesDf = lectures[["日付", "開講時限", "施設種別", "施設", "科目名称", "主担当教員"]]
+    lecturesDf.columns = ["日付", "開講時限", "施設種別", "施設", "タイトル", "使用者氏名"]
+    srcDf = srcDf.append(lecturesDf)
+#%%
 srcDf["予約名"] = srcDf["タイトル"] + "\r\n" + srcDf["使用者氏名"]
 # %%
 # 転記する枠を作成
